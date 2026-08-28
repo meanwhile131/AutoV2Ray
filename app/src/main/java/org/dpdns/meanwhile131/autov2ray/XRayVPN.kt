@@ -9,30 +9,33 @@ import android.os.Binder
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.util.Log
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import org.dpdns.meanwhile131.autov2ray.libXray.Request
-import org.dpdns.meanwhile131.autov2ray.libXray.Response
-import org.dpdns.meanwhile131.autov2ray.libXray.convertShareLinksToXrayJson
-import org.dpdns.meanwhile131.autov2ray.libXray.runXray
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.util.collections.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import libXray.LibXray
-import org.dpdns.meanwhile131.autov2ray.libXray.*
-import java.util.Dictionary
+import org.dpdns.meanwhile131.autov2ray.libXray.Balancer
+import org.dpdns.meanwhile131.autov2ray.libXray.BalancerStrategy
+import org.dpdns.meanwhile131.autov2ray.libXray.BurstObservatory
+import org.dpdns.meanwhile131.autov2ray.libXray.Inbound
+import org.dpdns.meanwhile131.autov2ray.libXray.PingConfig
+import org.dpdns.meanwhile131.autov2ray.libXray.Request
+import org.dpdns.meanwhile131.autov2ray.libXray.Response
+import org.dpdns.meanwhile131.autov2ray.libXray.RoutingSettings
+import org.dpdns.meanwhile131.autov2ray.libXray.Rule
+import org.dpdns.meanwhile131.autov2ray.libXray.TunSettings
+import org.dpdns.meanwhile131.autov2ray.libXray.convertShareLinksToXrayJson
+import org.dpdns.meanwhile131.autov2ray.libXray.runXray
 
 class XRayVPN : VpnService() {
     var config: JsonElement? = null
@@ -170,6 +173,7 @@ class XRayVPN : VpnService() {
         val respJson = invoke(req)
         Log.d("vpn", respJson)
     }
+
     private fun cleanup() {
         val req = Request(
             method = "stopXray",
@@ -181,13 +185,16 @@ class XRayVPN : VpnService() {
         this.fd?.close()
         isRunning.value = false
     }
+
     fun stop() {
         cleanup()
         stopSelf()
     }
+
     override fun onRevoke() {
         cleanup()
     }
+
     override fun onDestroy() {
         cleanup()
     }

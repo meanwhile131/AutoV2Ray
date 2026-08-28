@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
 @Serializable
-data class Response (
+data class Response(
     val success: Boolean,
     val data: JsonElement,
     val error: String?

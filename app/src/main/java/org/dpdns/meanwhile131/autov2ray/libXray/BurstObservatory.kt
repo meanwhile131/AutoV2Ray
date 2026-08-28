@@ -3,7 +3,7 @@ package org.dpdns.meanwhile131.autov2ray.libXray
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class BurstObservatory (
+data class BurstObservatory(
     val subjectSelector: Array<String>,
     val pingConfig: PingConfig
 )

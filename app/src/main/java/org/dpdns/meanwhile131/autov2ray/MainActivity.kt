@@ -1,7 +1,6 @@
 package org.dpdns.meanwhile131.autov2ray
 
 import android.app.Activity
-import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -15,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.dpdns.meanwhile131.autov2ray.ui.theme.AutoV2RayTheme
 
@@ -61,15 +62,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             AutoV2RayTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ConnectDisconnect(
-                        modifier = Modifier.padding(innerPadding),
-                        callback = {
-                            if (!XRayVPN.isRunning.value)
-                                configureVPNPermissions()
-                            else
-                                disconnectVPN()
-                        }
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        ConnectDisconnect(
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .align(Alignment.BottomCenter),
+                            callback = {
+                                if (!XRayVPN.isRunning.value)
+                                    configureVPNPermissions()
+                                else
+                                    disconnectVPN()
+                            }
+                        )
+                    }
                 }
             }
         }
