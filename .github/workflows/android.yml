@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 -d > "$KEYSTORE"
           ./gradlew build
-          mv app/build/outputs/apk/release/app-release-unsigned.apk $APK_NAME
+          mv app/build/outputs/apk/release/app-release.apk $APK_NAME
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
