@@ -25,14 +25,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build with Gradle
+        env:
+          KEYSTORE: key.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
+          echo ${{ secrets.KEYSTORE }} | base64 -d > $KEYSTORE
           ./gradlew build
           mv app/build/outputs/apk/release/app-release-unsigned.apk $APK_NAME
-      - name: Sign release APK
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: |
-          echo "${{ secrets.SIGN_KEY }}" | base64 -d > keystore.jks
-          apksigner sign --ks keystore.jks --ks-pass "pass:${{ secrets.SIGN_PASSWORD }}" $APK_NAME
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
