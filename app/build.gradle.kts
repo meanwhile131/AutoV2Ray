@@ -28,7 +28,7 @@ android {
         if (sign) {
             create("release") {
                 val path = System.getenv("KEYSTORE")
-		val password = System.getenv("KEYSTORE_PASSWORD")
+                val password = System.getenv("KEYSTORE_PASSWORD")
                 storeFile = if (path != "") file(path) else null
                 storePassword = password
                 keyPassword = password
