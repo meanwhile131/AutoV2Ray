@@ -1,3 +1,5 @@
+import de.undercouch.gradle.tasks.download.Download
+
 plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.application)
@@ -12,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "org.dpdns.meanwhile131.autov2ray"
-        minSdk = 23
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -36,9 +38,10 @@ android {
     }
 }
 
+val libXrayDir = layout.buildDirectory.dir("lib")
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
-    implementation(fileTree(mapOf("dir" to "lib", "include" to listOf("*.aar", "*.jar"))))
+    implementation(fileTree(mapOf("dir" to libXrayDir.map { it.dir("libxray-android") }, "include" to listOf("*.aar", "*.jar"))))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
@@ -56,4 +59,19 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+val libXrayDownload = tasks.register<Download>("downloadLibXray") {
+    description = "Download libXray"
+    src("https://github.com/XTLS/libXray/releases/latest/download/libxray-android.zip")
+    dest(layout.buildDirectory.file("libxray-android.zip"))
+    onlyIfModified(true)
+}
+val libXray = tasks.register<Copy>("extractLibXray") {
+    description = "Extract libXray archive"
+    dependsOn(libXrayDownload)
+    from(zipTree(libXrayDownload.get().dest))
+    into(libXrayDir)
+}
+tasks.named("preBuild") {
+    dependsOn(libXray)
 }
