@@ -36,5 +36,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          path: $APK_NAME
+          path: ${{ env.APK_NAME }}
           archive: false
