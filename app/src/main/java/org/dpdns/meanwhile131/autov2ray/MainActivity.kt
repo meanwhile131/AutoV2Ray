@@ -1,9 +1,14 @@
 package org.dpdns.meanwhile131.autov2ray
 
 import android.app.Activity
+import android.app.Service
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.net.VpnService
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,19 +21,34 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import org.dpdns.meanwhile131.autov2ray.ui.theme.AutoV2RayTheme
 
 class MainActivity : ComponentActivity() {
     private var urls =
         arrayOf("https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt")
     private lateinit var getVPNResult: ActivityResultLauncher<Intent>
-    private lateinit var service: XRayVPN
+    private var service: XRayVPN? = null
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(
+            name: ComponentName?,
+            service: IBinder?
+        ) {
+            this@MainActivity.service = (service as XRayVPN.LocalBinder).getService()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            this@MainActivity.service = null;
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Intent(this, XRayVPN::class.java).also { intent ->
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
         getVPNResult =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode != Activity.RESULT_OK) {
@@ -41,15 +61,23 @@ class MainActivity : ComponentActivity() {
         setContent {
             AutoV2RayTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Connect(
+                    ConnectDisconnect(
                         modifier = Modifier.padding(innerPadding),
                         callback = {
-                            configureVPNPermissions()
+                            if (!XRayVPN.isRunning.value)
+                                configureVPNPermissions()
+                            else
+                                disconnectVPN()
                         }
                     )
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        unbindService(connection)
+        super.onDestroy()
     }
 
     fun configureVPNPermissions() {
@@ -65,18 +93,30 @@ class MainActivity : ComponentActivity() {
     }
 
     fun connectVPN() {
-        Log.i("vpn", "starting vpn")
+        Log.i("main", "starting vpn")
         val intent = Intent(this, XRayVPN::class.java).apply {
             putExtra("urls", urls)
         }
-        this.startForegroundService(intent)
+        startForegroundService(intent)
+    }
+
+    fun disconnectVPN() {
+        Log.i("main", "stopping vpn")
+        if (service == null) {
+            Log.e("main", "no vpn service found")
+        }
+        service?.stop()
     }
 }
 
 @Composable
-fun Connect(modifier: Modifier = Modifier, callback: () -> Unit) {
+fun ConnectDisconnect(modifier: Modifier = Modifier, callback: () -> Unit) {
+    val vpnRunning by XRayVPN.isRunning.collectAsState()
     Button(
         onClick = { callback() },
         modifier = modifier
-    ) { Text("Connect") }
+    ) {
+        var text = if (vpnRunning) "Disconnect" else "Connect"
+        Text(text)
+    }
 }

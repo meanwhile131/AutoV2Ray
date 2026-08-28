@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
 import android.net.VpnService
+import android.os.Binder
+import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import kotlinx.serialization.json.Json
@@ -20,6 +22,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.util.collections.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -37,6 +40,21 @@ class XRayVPN : VpnService() {
     lateinit var urls: Array<String>
     val CHANNEL_ID = "vpn"
     private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private val binder = LocalBinder()
+
+    companion object {
+        var isRunning = MutableStateFlow(false)
+            private set
+    }
+
+
+    inner class LocalBinder : Binder() {
+        fun getService(): XRayVPN = this@XRayVPN
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        return binder
+    }
 
     private suspend fun fetchShareLinks() {
         val client = HttpClient(CIO)
@@ -56,11 +74,14 @@ class XRayVPN : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        isRunning.value = true
         this.urls = intent?.getStringArrayExtra("urls")!!
-        val channel = NotificationChannel(CHANNEL_ID, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)
+        val channel =
+            NotificationChannel(CHANNEL_ID, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
-        val notification = Notification.Builder(this, CHANNEL_ID).setContentTitle("AutoV2Ray enabled").build()
+        val notification =
+            Notification.Builder(this, CHANNEL_ID).setContentTitle("AutoV2Ray enabled").build()
         startForeground(startId, notification)
         serviceScope.launch {
             fetchShareLinks()
@@ -98,16 +119,18 @@ class XRayVPN : VpnService() {
                     balancerTag = "balancer"
                 )
             ),
-            balancers = arrayOf(Balancer(
-                tag = "balancer",
-                selector = arrayOf("out"),
-                strategy = BalancerStrategy(
-                    type = "leastload"
+            balancers = arrayOf(
+                Balancer(
+                    tag = "balancer",
+                    selector = arrayOf("out"),
+                    strategy = BalancerStrategy(
+                        type = "leastload"
+                    )
                 )
-            ))
+            )
         )
         config.put("routing", Json.encodeToJsonElement(routing))
-        
+
         val burstObservatory = BurstObservatory(
             subjectSelector = arrayOf("out"),
             pingConfig = PingConfig(
@@ -147,8 +170,7 @@ class XRayVPN : VpnService() {
         val respJson = invoke(req)
         Log.d("vpn", respJson)
     }
-
-    override fun onRevoke() {
+    private fun cleanup() {
         val req = Request(
             method = "stopXray",
             payload = null
@@ -157,7 +179,17 @@ class XRayVPN : VpnService() {
         Log.d("vpn", resp)
         Log.i("vpn", "service stop")
         this.fd?.close()
+        isRunning.value = false
+    }
+    fun stop() {
+        cleanup()
         stopSelf()
+    }
+    override fun onRevoke() {
+        cleanup()
+    }
+    override fun onDestroy() {
+        cleanup()
     }
 }
 
