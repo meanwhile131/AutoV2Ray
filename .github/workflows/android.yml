@@ -26,7 +26,7 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         env:
-          KEYSTORE: ${{ github.workspace }}/key.jks
+          KEYSTORE: ${{ github.workspace }}/key.ps12
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 -d > "$KEYSTORE"
