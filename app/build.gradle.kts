@@ -28,10 +28,11 @@ android {
         if (sign) {
             create("release") {
                 val path = System.getenv("KEYSTORE")
+		val password = System.getenv("KEYSTORE_PASSWORD")
                 storeFile = if (path != "") file(path) else null
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyPassword = ""
-                keyAlias = "mykey"
+                storePassword = password
+                keyPassword = password
+                keyAlias = System.getenv("KEY_ALIAS")
             }
         }
     }
