@@ -41,7 +41,14 @@ android {
 val libXrayDir = layout.buildDirectory.dir("lib")
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
-    implementation(fileTree(mapOf("dir" to libXrayDir.map { it.dir("libxray-android") }, "include" to listOf("*.aar", "*.jar"))))
+    implementation(
+        fileTree(
+            mapOf(
+                "dir" to libXrayDir.map { it.dir("libxray-android") },
+                "include" to listOf("*.aar", "*.jar")
+            )
+        )
+    )
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
