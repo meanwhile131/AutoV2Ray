@@ -30,6 +30,8 @@ android {
                 val path = System.getenv("KEYSTORE")
                 storeFile = if (path != "") file(path) else null
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyPassword = ""
+                keyAlias = ""
             }
         }
     }
