@@ -26,10 +26,10 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         env:
-          KEYSTORE: key.jks
+          KEYSTORE: ${{ github.workspace }}/key.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 -d > $KEYSTORE
+          echo "${{ secrets.KEYSTORE }}" | base64 -d > "$KEYSTORE"
           ./gradlew build
           mv app/build/outputs/apk/release/app-release-unsigned.apk $APK_NAME
       - name: Upload APK
