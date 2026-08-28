@@ -7,10 +7,13 @@ import android.content.Intent
 import android.net.VpnService
 import android.os.Binder
 import android.os.IBinder
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import android.widget.Toast
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +44,7 @@ class XRayVPN : VpnService() {
     var config: JsonElement? = null
     var fd: ParcelFileDescriptor? = null
     lateinit var urls: Array<String>
-    val CHANNEL_ID = "vpn"
+    val channelId = "vpn"
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private val binder = LocalBinder()
 
@@ -61,34 +64,39 @@ class XRayVPN : VpnService() {
 
     private suspend fun fetchShareLinks() {
         val client = HttpClient(CIO)
-        var allLinks = StringBuilder()
+        val allLinks = StringBuilder()
         for (url in urls) {
             val resp = client.get(url)
             val links = resp.bodyAsText()
             allLinks.append(links).append("\n")
         }
-        var req = Request(
+        val req = Request(
             method = "convertShareLinksToXrayJson",
             payload = Json.encodeToJsonElement(convertShareLinksToXrayJson(allLinks.toString()))
         )
-        var respJson = invoke(req)
+        val respJson = invoke(req)
         val resp = Json.decodeFromString<Response>(respJson)
         config = resp.data
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        isRunning.value = true
         this.urls = intent?.getStringArrayExtra("urls")!!
         val channel =
-            NotificationChannel(CHANNEL_ID, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)
+            NotificationChannel(channelId, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
         val notification =
-            Notification.Builder(this, CHANNEL_ID).setContentTitle("AutoV2Ray enabled").build()
+            Notification.Builder(this, channelId).setContentTitle("AutoV2Ray enabled").build()
         startForeground(startId, notification)
         serviceScope.launch {
-            fetchShareLinks()
-            startXray()
+            try {
+                fetchShareLinks()
+                startXray()
+            } catch (e: ConnectTimeoutException) {
+                Looper.prepare()
+                Toast.makeText(applicationContext, e.toString(), Toast.LENGTH_LONG).show()
+                Log.e("vpn", e.toString())
+            }
         }
         return START_STICKY
     }
@@ -102,18 +110,19 @@ class XRayVPN : VpnService() {
         val dialerController = dialerController@{ fd: Long ->
             return@dialerController protect(fd.toInt())
         }
-        libXray.LibXray.registerDialerController(dialerController)
-        libXray.LibXray.setDNS(dialerController, "8.8.8.8:53")
+        LibXray.registerDialerController(dialerController)
+        LibXray.resetDNS()
+        LibXray.setDNS(dialerController, "8.8.8.8:53")
         val config = config!!.jsonObject.toMutableMap()
         val inbound = Inbound("tun", TunSettings("tun0", "in"))
         val inbounds = Json.encodeToJsonElement(arrayOf(inbound))
-        config.put("inbounds", inbounds)
+        config["inbounds"] = inbounds
 
         val env = mutableMapOf<String, String>()
         assert(this.fd != null)
-        env.set("xray.tun.fd", this.fd?.fd.toString())
-        env.set("XRAY_TUN_FD", this.fd?.fd.toString())
-        config.put("env", Json.encodeToJsonElement(env))
+        env["xray.tun.fd"] = this.fd?.fd.toString()
+        env["XRAY_TUN_FD"] = this.fd?.fd.toString()
+        config["env"] = Json.encodeToJsonElement(env)
 
         val routing = RoutingSettings(
             arrayOf(
@@ -132,7 +141,7 @@ class XRayVPN : VpnService() {
                 )
             )
         )
-        config.put("routing", Json.encodeToJsonElement(routing))
+        config["routing"] = Json.encodeToJsonElement(routing)
 
         val burstObservatory = BurstObservatory(
             subjectSelector = arrayOf("out"),
@@ -140,15 +149,15 @@ class XRayVPN : VpnService() {
                 interval = "10m"
             )
         )
-        config.put("burstObservatory", Json.encodeToJsonElement(burstObservatory))
+        config["burstObservatory"] = Json.encodeToJsonElement(burstObservatory)
 
-        val outbounds = config.get("outbounds")?.jsonArray
+        val outbounds = config["outbounds"]?.jsonArray
         val newOutbounds = outbounds?.mapIndexed { i, outbound ->
             val map = outbound.jsonObject.toMutableMap()
-            val streamSettings = map.get("streamSettings")
+            val streamSettings = map["streamSettings"]
             if (streamSettings is JsonObject) {
                 val streamSettingsMap = streamSettings.toMutableMap()
-                val realitySettings = streamSettingsMap.get("realitySettings")
+                val realitySettings = streamSettingsMap["realitySettings"]
                 if (realitySettings is JsonObject) {
                     val realitySettingsMap = realitySettings.toMutableMap()
                     realitySettingsMap.remove("dest")
@@ -158,7 +167,7 @@ class XRayVPN : VpnService() {
                 map["streamSettings"] = JsonObject(streamSettingsMap)
             }
             map.remove("sendThrough")
-            map.set("tag", Json.encodeToJsonElement("out$i"))
+            map["tag"] = Json.encodeToJsonElement("out$i")
             JsonObject(map)
         }
         config["outbounds"] = Json.encodeToJsonElement(newOutbounds)
@@ -171,10 +180,12 @@ class XRayVPN : VpnService() {
             payload = Json.encodeToJsonElement(runXray(configJson))
         )
         val respJson = invoke(req)
+        isRunning.value = true
         Log.d("vpn", respJson)
     }
 
     private fun cleanup() {
+        LibXray.resetDNS()
         val req = Request(
             method = "stopXray",
             payload = null

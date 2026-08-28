@@ -1,8 +1,6 @@
 package org.dpdns.meanwhile131.autov2ray
 
-import android.app.Activity
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.net.VpnService
@@ -41,18 +39,18 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            this@MainActivity.service = null;
+            this@MainActivity.service = null
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Intent(this, XRayVPN::class.java).also { intent ->
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            bindService(intent, connection, BIND_AUTO_CREATE)
         }
         getVPNResult =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode != Activity.RESULT_OK) {
+                if (result.resultCode != RESULT_OK) {
                     Log.e("vpn", "vpn request intent failed")
                     return@registerForActivityResult
                 }
@@ -121,7 +119,7 @@ fun ConnectDisconnect(modifier: Modifier = Modifier, callback: () -> Unit) {
         onClick = { callback() },
         modifier = modifier
     ) {
-        var text = if (vpnRunning) "Disconnect" else "Connect"
+        val text = if (vpnRunning) "Disconnect" else "Connect"
         Text(text)
     }
 }
