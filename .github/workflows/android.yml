@@ -9,7 +9,10 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      APK_NAME: "${{ github.event.repository.name }}.apk"
+      APK_DIR: app/build/outputs/apk/release
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact-id }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
 
     steps:
       - uses: actions/checkout@v7
@@ -18,7 +21,6 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          cache: gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
@@ -32,6 +34,28 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 -d > "$KEYSTORE"
           ./gradlew build
+      - name: Generate APK matrix
+        id: matrix
+        run: |
+          FILES_JSON=$(find "$APK_DIR" -type f -name "*.apk" | jq -R . | jq -s -c .)
+          echo "matrix=$FILES_JSON" >> $GITHUB_OUTPUT
+      - name: Upload all APKs as zip
+        uses: actions/upload-artifact@v7
+        id: upload
+        with:
+          name: all
+          path: ${{ env.APK_DIR }}/*.apk
+  upload:
+    needs: build
+    runs-on: ubuntu-slim
+    strategy:
+      matrix:
+        apk: ${{ fromJson(needs.build.outputs.matrix }}
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact }}
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
