@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-slim
     strategy:
       matrix:
-        apk: ${{ fromJson(needs.build.outputs.matrix }}
+        apk: ${{ fromJson(needs.build.outputs.matrix) }}
     steps:
       - name: Download APKs
         uses: actions/download-artifact@v8
