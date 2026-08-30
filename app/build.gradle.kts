@@ -98,9 +98,9 @@ base {
 }
 val libXrayDownload = tasks.register<Download>("downloadLibXray") {
     description = "Download libXray"
-    src("https://github.com/XTLS/libXray/releases/latest/download/libxray-android.zip")
+    src("https://github.com/XTLS/libXray/releases/download/v${libs.versions.libXray.get()}/libxray-android.zip")
     dest(layout.buildDirectory.file("libxray-android.zip"))
-    onlyIfModified(true)
+    overwrite(false)
 }
 val libXray = tasks.register<Copy>("extractLibXray") {
     description = "Extract libXray archive"
