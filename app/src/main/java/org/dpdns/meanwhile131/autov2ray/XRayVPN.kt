@@ -66,8 +66,10 @@ class XRayVPN : VpnService() {
         val client = HttpClient(CIO)
         val allLinks = StringBuilder()
         for (url in urls) {
+            Log.d("vpn", "fetching $url")
             val resp = client.get(url)
             val links = resp.bodyAsText()
+            Log.d("vpn", links)
             allLinks.append(links).append("\n")
         }
         val req = Request(
@@ -80,7 +82,8 @@ class XRayVPN : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        this.urls = intent?.getStringArrayExtra("urls")!!
+        val urls = intent?.getStringArrayExtra("urls") ?: return START_NOT_STICKY
+        this.urls = urls
         val channel =
             NotificationChannel(channelId, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)
         val manager = getSystemService(NotificationManager::class.java)

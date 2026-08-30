@@ -9,13 +9,13 @@ import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +23,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import org.dpdns.meanwhile131.autov2ray.ui.theme.AutoV2RayTheme
 
 class MainActivity : ComponentActivity() {
-    private var urls =
-        arrayOf("https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt")
     private lateinit var getVPNResult: ActivityResultLauncher<Intent>
     private var service: XRayVPN? = null
     private val connection = object : ServiceConnection {
@@ -42,9 +42,11 @@ class MainActivity : ComponentActivity() {
             this@MainActivity.service = null
         }
     }
+    lateinit var urlsViewModel: URLViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        urlsViewModel = ViewModelProvider(this)[URLViewModel::class.java]
         Intent(this, XRayVPN::class.java).also { intent ->
             bindService(intent, connection, BIND_AUTO_CREATE)
         }
@@ -54,20 +56,27 @@ class MainActivity : ComponentActivity() {
                     Log.e("vpn", "vpn request intent failed")
                     return@registerForActivityResult
                 }
-                connectVPN()
+                connectVPN(urlsViewModel.state.text.toString())
             }
-        enableEdgeToEdge()
         setContent {
             AutoV2RayTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        val input = OutlinedTextField(
+                            label = { Text("URLs") },
+                            state = urlsViewModel.state,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .weight(1f),
+                        )
                         ConnectDisconnect(
                             modifier = Modifier
                                 .padding(innerPadding)
-                                .align(Alignment.BottomCenter),
+                                .align(Alignment.CenterHorizontally),
                             callback = {
                                 if (!XRayVPN.isRunning.value)
-                                    configureVPNPermissions()
+                                    configureVPNPermissions(urlsViewModel.state.text.toString())
                                 else
                                     disconnectVPN()
                             }
@@ -83,20 +92,21 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    fun configureVPNPermissions() {
+    fun configureVPNPermissions(urls: String) {
         Log.d("connect", "Connect clicked")
         val intent = VpnService.prepare(this)
 
         if (intent == null) {
-            connectVPN()
+            connectVPN(urls)
             return
         }
         Log.d("vpn", "intent")
         getVPNResult.launch(intent)
     }
 
-    fun connectVPN() {
+    fun connectVPN(urls: String) {
         Log.i("main", "starting vpn")
+        val urls = urls.lines().toTypedArray()
         val intent = Intent(this, XRayVPN::class.java).apply {
             putExtra("urls", urls)
         }
