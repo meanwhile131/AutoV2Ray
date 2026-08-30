@@ -93,6 +93,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+base {
+    archivesName.set("autov2ray")
+}
 val libXrayDownload = tasks.register<Download>("downloadLibXray") {
     description = "Download libXray"
     src("https://github.com/XTLS/libXray/releases/latest/download/libxray-android.zip")
