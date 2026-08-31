@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     Log.e("vpn", "vpn request intent failed")
                     return@registerForActivityResult
                 }
-                connectVPN(urlsViewModel.state.text.toString())
+                connectVPN()
             }
         setContent {
             AutoV2RayTheme {
@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
                                 .align(Alignment.CenterHorizontally),
                             callback = {
                                 if (!XRayVPN.isRunning.value)
-                                    configureVPNPermissions(urlsViewModel.state.text.toString())
+                                    configureVPNPermissions()
                                 else
                                     disconnectVPN()
                             }
@@ -92,21 +92,21 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    fun configureVPNPermissions(urls: String) {
+    fun configureVPNPermissions() {
         Log.d("connect", "Connect clicked")
         val intent = VpnService.prepare(this)
 
         if (intent == null) {
-            connectVPN(urls)
+            connectVPN()
             return
         }
         Log.d("vpn", "intent")
         getVPNResult.launch(intent)
     }
 
-    fun connectVPN(urls: String) {
+    fun connectVPN() {
         Log.i("main", "starting vpn")
-        val urls = urls.lines().toTypedArray()
+        val urls = urlsViewModel.state.text.toString().lines().toTypedArray()
         val intent = Intent(this, XRayVPN::class.java).apply {
             putExtra("urls", urls)
         }
