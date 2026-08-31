@@ -114,7 +114,6 @@ class XRayVPN : VpnService() {
             return@dialerController protect(fd.toInt())
         }
         LibXray.registerDialerController(dialerController)
-        LibXray.resetDNS()
         LibXray.setDNS(dialerController, "8.8.8.8:53")
         val config = config!!.jsonObject.toMutableMap()
         val inbound = Inbound("tun", TunSettings("tun0", "in"))
@@ -188,13 +187,13 @@ class XRayVPN : VpnService() {
     }
 
     private fun cleanup() {
-        LibXray.resetDNS()
         val req = Request(
             method = "stopXray",
             payload = null
         )
         val resp = invoke(req)
         Log.d("vpn", resp)
+        LibXray.resetDNS()
         Log.i("vpn", "service stop")
         this.fd?.close()
         isRunning.value = false
