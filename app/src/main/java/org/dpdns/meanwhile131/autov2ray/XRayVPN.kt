@@ -31,6 +31,7 @@ import org.dpdns.meanwhile131.autov2ray.libXray.Balancer
 import org.dpdns.meanwhile131.autov2ray.libXray.BalancerStrategy
 import org.dpdns.meanwhile131.autov2ray.libXray.BurstObservatory
 import org.dpdns.meanwhile131.autov2ray.libXray.Inbound
+import org.dpdns.meanwhile131.autov2ray.libXray.Outbound
 import org.dpdns.meanwhile131.autov2ray.libXray.PingConfig
 import org.dpdns.meanwhile131.autov2ray.libXray.Request
 import org.dpdns.meanwhile131.autov2ray.libXray.Response
@@ -110,11 +111,6 @@ class XRayVPN : VpnService() {
             Log.e("vpn", "Buildier().establish() returned null fd")
             return
         }
-        val dialerController = dialerController@{ fd: Long ->
-            return@dialerController protect(fd.toInt())
-        }
-        LibXray.registerDialerController(dialerController)
-        LibXray.setDNS(dialerController, "8.8.8.8:53")
         val config = config!!.jsonObject.toMutableMap()
         val inbound = Inbound("tun", TunSettings("tun0", "in"))
         val inbounds = Json.encodeToJsonElement(arrayOf(inbound))
@@ -130,7 +126,7 @@ class XRayVPN : VpnService() {
             arrayOf(
                 Rule(
                     inboundTag = arrayOf("in"),
-                    balancerTag = "balancer"
+                    balancerTag = "balancer",
                 )
             ),
             balancers = arrayOf(
@@ -139,7 +135,8 @@ class XRayVPN : VpnService() {
                     selector = arrayOf("out"),
                     strategy = BalancerStrategy(
                         type = "leastload"
-                    )
+                    ),
+                    fallbackTag = "freedom"
                 )
             )
         )
@@ -171,12 +168,24 @@ class XRayVPN : VpnService() {
             map.remove("sendThrough")
             map["tag"] = Json.encodeToJsonElement("out$i")
             JsonObject(map)
-        }
+        }?.plus(
+            Json.encodeToJsonElement(
+                Outbound(
+                    "freedom"
+                )
+            )
+        )
+
         config["outbounds"] = Json.encodeToJsonElement(newOutbounds)
 
         val configJson = Json.encodeToString(config)
 
         Log.i("vpn", "service start")
+        val dialerController = dialerController@{ fd: Long ->
+            return@dialerController protect(fd.toInt())
+        }
+        LibXray.registerDialerController(dialerController)
+        LibXray.setDNS(dialerController, "8.8.8.8:53")
         val req = Request(
             method = "runXrayFromJson",
             payload = Json.encodeToJsonElement(runXray(configJson))

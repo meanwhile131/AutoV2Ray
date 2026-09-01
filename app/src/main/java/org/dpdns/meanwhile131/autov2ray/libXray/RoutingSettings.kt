@@ -13,7 +13,8 @@ data class Rule(
 data class Balancer(
     val tag: String,
     val selector: Array<String>,
-    val strategy: BalancerStrategy
+    val strategy: BalancerStrategy,
+    val fallbackTag: String
 )
 
 @Serializable
