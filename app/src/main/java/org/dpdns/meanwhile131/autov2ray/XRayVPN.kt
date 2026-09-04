@@ -31,6 +31,7 @@ import org.dpdns.meanwhile131.autov2ray.libXray.Balancer
 import org.dpdns.meanwhile131.autov2ray.libXray.BalancerStrategy
 import org.dpdns.meanwhile131.autov2ray.libXray.BurstObservatory
 import org.dpdns.meanwhile131.autov2ray.libXray.Inbound
+import org.dpdns.meanwhile131.autov2ray.libXray.LogSettings
 import org.dpdns.meanwhile131.autov2ray.libXray.Outbound
 import org.dpdns.meanwhile131.autov2ray.libXray.PingConfig
 import org.dpdns.meanwhile131.autov2ray.libXray.Request
@@ -177,6 +178,9 @@ class XRayVPN : VpnService() {
         )
 
         config["outbounds"] = Json.encodeToJsonElement(newOutbounds)
+        config["log"] = Json.encodeToJsonElement(LogSettings(
+            loglevel = "info"
+        ))
 
         val configJson = Json.encodeToString(config)
 
