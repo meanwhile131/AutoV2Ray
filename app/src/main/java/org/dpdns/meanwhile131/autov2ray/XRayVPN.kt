@@ -113,7 +113,7 @@ class XRayVPN : VpnService() {
             return
         }
         val config = config!!.jsonObject.toMutableMap()
-        val inbound = Inbound("tun", TunSettings("tun0", "in"))
+        val inbound = Inbound("tun", TunSettings("tun0"), "in")
         val inbounds = Json.encodeToJsonElement(arrayOf(inbound))
         config["inbounds"] = inbounds
 
@@ -178,9 +178,11 @@ class XRayVPN : VpnService() {
         )
 
         config["outbounds"] = Json.encodeToJsonElement(newOutbounds)
-        config["log"] = Json.encodeToJsonElement(LogSettings(
-            loglevel = "info"
-        ))
+        config["log"] = Json.encodeToJsonElement(
+            LogSettings(
+                loglevel = "info"
+            )
+        )
 
         val configJson = Json.encodeToString(config)
 

@@ -5,11 +5,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Inbound(
     val protocol: String,
-    val settings: TunSettings
+    val settings: TunSettings,
+    val tag: String
 )
 
 @Serializable
 data class TunSettings(
     val name: String,
-    val tag: String
 )
