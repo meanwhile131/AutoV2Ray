@@ -180,7 +180,7 @@ class XRayVPN : VpnService() {
         config["outbounds"] = Json.encodeToJsonElement(newOutbounds)
         config["log"] = Json.encodeToJsonElement(
             LogSettings(
-                loglevel = "info"
+                loglevel = "warning"
             )
         )
 
