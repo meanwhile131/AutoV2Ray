@@ -24,8 +24,7 @@ import org.dpdns.meanwhile131.autov2ray.libXray.Request
 import org.dpdns.meanwhile131.autov2ray.libXray.runXray
 
 class XRayVPN : VpnService() {
-    val shareLinkDataSource = ShareLinksRemoteDataSource()
-    val configRepository = ConfigRepository(shareLinkDataSource)
+    lateinit var configRepository: ConfigRepository
     var fd: ParcelFileDescriptor? = null
     val channelId = "vpn"
     private val serviceScope = CoroutineScope(Dispatchers.IO)
@@ -46,6 +45,8 @@ class XRayVPN : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val shareLinkDataSource = ShareLinksRemoteDataSource(baseContext.dataStore)
+        configRepository = ConfigRepository(shareLinkDataSource)
         val urls = intent?.getStringArrayExtra("urls") ?: return START_NOT_STICKY
         val channel =
             NotificationChannel(channelId, "VPN Service", NotificationManager.IMPORTANCE_DEFAULT)

@@ -81,6 +81,7 @@ class ConfigRepository(
         }?.plus(
             Json.encodeToJsonElement(
                 Outbound(
+                    "freedom",
                     "freedom"
                 )
             )

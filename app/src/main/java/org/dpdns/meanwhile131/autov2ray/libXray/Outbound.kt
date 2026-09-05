@@ -4,5 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Outbound(
-    val protocol: String
+    val protocol: String,
+    val tag: String
 )
