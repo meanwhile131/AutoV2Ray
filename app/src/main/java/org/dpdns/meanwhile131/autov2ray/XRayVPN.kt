@@ -24,7 +24,8 @@ import org.dpdns.meanwhile131.autov2ray.libXray.Request
 import org.dpdns.meanwhile131.autov2ray.libXray.runXray
 
 class XRayVPN : VpnService() {
-    val configRepository = ConfigRepository()
+    val shareLinkDataSource = ShareLinksRemoteDataSource()
+    val configRepository = ConfigRepository(shareLinkDataSource)
     var fd: ParcelFileDescriptor? = null
     val channelId = "vpn"
     private val serviceScope = CoroutineScope(Dispatchers.IO)

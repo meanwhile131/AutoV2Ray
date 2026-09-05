@@ -1,10 +1,5 @@
 package org.dpdns.meanwhile131.autov2ray
 
-import android.util.Log
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -25,19 +20,14 @@ import org.dpdns.meanwhile131.autov2ray.libXray.Rule
 import org.dpdns.meanwhile131.autov2ray.libXray.TunSettings
 import org.dpdns.meanwhile131.autov2ray.libXray.convertShareLinksToXrayJson
 
-class ConfigRepository {
+class ConfigRepository(
+    private val dataSource: ShareLinksRemoteDataSource
+) {
     suspend fun getConfig(urls: Array<String>): MutableMap<String, JsonElement> {
-        val client = HttpClient(CIO)
-        val allLinks = StringBuilder()
-        for (url in urls) {
-            Log.d("vpn", "fetching $url")
-            val resp = client.get(url)
-            val links = resp.bodyAsText()
-            allLinks.append(links).append("\n")
-        }
+        val allLinks = dataSource.getLinks(urls)
         val req = Request(
             method = "convertShareLinksToXrayJson",
-            payload = Json.encodeToJsonElement(convertShareLinksToXrayJson(allLinks.toString()))
+            payload = Json.encodeToJsonElement(convertShareLinksToXrayJson(allLinks))
         )
         val respJson = invoke(req)
         val resp = Json.decodeFromString<Response>(respJson)
@@ -47,30 +37,24 @@ class ConfigRepository {
         val inbounds = Json.encodeToJsonElement(arrayOf(inbound))
         config["inbounds"] = inbounds
 
-
         val routing = RoutingSettings(
             arrayOf(
                 Rule(
                     inboundTag = arrayOf("in"),
                     balancerTag = "balancer",
                 )
-            ),
-            balancers = arrayOf(
+            ), balancers = arrayOf(
                 Balancer(
-                    tag = "balancer",
-                    selector = arrayOf("out"),
-                    strategy = BalancerStrategy(
+                    tag = "balancer", selector = arrayOf("out"), strategy = BalancerStrategy(
                         type = "leastload"
-                    ),
-                    fallbackTag = "freedom"
+                    ), fallbackTag = "freedom"
                 )
             )
         )
         config["routing"] = Json.encodeToJsonElement(routing)
 
         val burstObservatory = BurstObservatory(
-            subjectSelector = arrayOf("out"),
-            pingConfig = PingConfig(
+            subjectSelector = arrayOf("out"), pingConfig = PingConfig(
                 interval = "10m"
             )
         )

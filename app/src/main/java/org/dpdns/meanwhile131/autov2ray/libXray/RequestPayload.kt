@@ -4,5 +4,4 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-sealed class RequestPayload {
-}
+sealed class RequestPayload

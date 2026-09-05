@@ -5,5 +5,4 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class convertShareLinksToXrayJson(
     val text: String
-) : RequestPayload() {
-}
+) : RequestPayload()
